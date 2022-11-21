@@ -23,16 +23,19 @@ async def parse_events(html, queue, share_state_d):
 
     for row in table.findAll('tr')[1:][::-1]:
         col = row.findAll('td')
+        coin_name = ' '.join(col[1].getText(). split(' ')[0:])
+        coin_hight = float(col[4].getText(). split(' ')[0])
         coin = col[2].getText()
         coin_amount = float(coin. split(' ')[0])
-        coin_name = ' '.join(coin. split(' ')[1:])
+        coin_symbol = ' '.join(coin. split(' ')[1:])
+        coin_type = ' '.join(col[7].getText(). split(' ')[0:])
         time = col[5].find('span').attrs['title']
         dt = datetime.datetime.strptime(time, '%Y-%m-%d %H:%M:%S')
         # Seems YIIMP first adds the block withtout the coin amount
         # Next iteration get the proper amount
         if dt > share_state_d['previous_poll_dt'] and coin_amount != 0:
-            logger.info('New event found while parsing: %f %s found at %s', coin_amount, coin_name, dt)
-            queue.put_nowait((dt, coin_name.upper(), coin_amount))
+            logger.info('New event found while parsing: !!Found Block!! %s Block: %f Reward: %f %s Time: %s Type: %s', coin_name, coin_hight, coin_amount, coin_symbol, dt, coin_type)
+            queue.put_nowait((dt, coin_name, coin_hight, coin_symbol.upper(), coin_amount, coin_type))
             share_state_d['previous_poll_dt'] = dt
 
 
@@ -77,9 +80,9 @@ async def post_events_discord(url, queue):
         while True:
 
             try:
-                dt, coin_name, coin_amount = await queue.get()
+                dt, coin_name, coin_hight, coin_symbol, coin_amount, coin_type = await queue.get()
 
-                message = '%f %s found at %s UTC' % (coin_amount, coin_name, dt)
+                message =  '*****!!Found Block!!***** \n**%s**  \n**Block:** %f \n**Reward:** %f %s \n**Time:** %s GMT+7 \n**Type:** %s' % ( coin_name, coin_hight, coin_amount, coin_symbol, dt, coin_type)
 
                 async with aiohttp.ClientSession() as session:
                     async with session.post(url, json={ 'content': message }) as resp:
@@ -132,6 +135,6 @@ if __name__ == '__main__':
         logger.info('Exit signal received, stopping %d coroutines', len(all_tasks))
         for task in all_tasks:
             task.cancel()
-        loop.run_until_complete(asyncio.wait_for(asyncio.gather(*all_tasks), timeout=10))
+        loop.run_until_complete(asyncio.wait_for(asyncio.gather(*all_tasks), timeout=30))
 
     loop.close()
