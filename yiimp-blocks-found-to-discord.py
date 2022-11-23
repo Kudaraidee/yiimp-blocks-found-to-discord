@@ -24,7 +24,7 @@ async def parse_events(html, queue, share_state_d):
     for row in table.findAll('tr')[1:][::-1]:
         col = row.findAll('td')
         coin_name = ' '.join(col[1].getText(). split(' ')[0:])
-        coin_hight = float(col[4].getText(). split(' ')[0])
+        coin_hight = ''.join(col[4].getText(). split(' ')[0])
         coin = col[2].getText()
         coin_amount = float(coin. split(' ')[0])
         coin_symbol = ' '.join(coin. split(' ')[1:])
@@ -34,7 +34,7 @@ async def parse_events(html, queue, share_state_d):
         # Seems YIIMP first adds the block withtout the coin amount
         # Next iteration get the proper amount
         if dt > share_state_d['previous_poll_dt'] and coin_amount != 0:
-            logger.info('New event found while parsing: !!Found Block!! %s Block: %f Reward: %f %s Time: %s Type: %s', coin_name, coin_hight, coin_amount, coin_symbol, dt, coin_type)
+            logger.info('New event found while parsing: !!Found Block!! %s Block: %s Reward: %f %s Time: %s Type: %s', coin_name, coin_hight, coin_amount, coin_symbol, dt, coin_type)
             queue.put_nowait((dt, coin_name, coin_hight, coin_symbol.upper(), coin_amount, coin_type))
             share_state_d['previous_poll_dt'] = dt
 
@@ -82,7 +82,7 @@ async def post_events_discord(url, queue):
             try:
                 dt, coin_name, coin_hight, coin_symbol, coin_amount, coin_type = await queue.get()
 
-                message =  '*****!!Found Block!!***** \n**%s**  \n**Block:** %f \n**Reward:** %f %s \n**Time:** %s GMT+7 \n**Type:** %s' % ( coin_name, coin_hight, coin_amount, coin_symbol, dt, coin_type)
+                message =  '*****!!Found Block!!***** \n**%s**  \n**Block:** %s \n**Reward:** %f %s \n**Time:** %s GMT+7 \n**Type:** %s' % ( coin_name, coin_hight, coin_amount, coin_symbol, dt, coin_type)
 
                 async with aiohttp.ClientSession() as session:
                     async with session.post(url, json={ 'content': message }) as resp:
